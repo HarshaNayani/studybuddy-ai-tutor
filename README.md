@@ -4,17 +4,23 @@ An Ed-Tech chatbot that answers student questions from **text or images**, groun
 
 Built for the igebra.ai AI Intern assignment with the Vercel AI SDK and Groq.
 
-**Live demo:** `https://studybuddy-ai-tutor.vercel.app/`
+**Live demo:** `<add your Vercel URL here>`
 
 ## Features
 
 | Requirement | How it is done |
 |---|---|
-| Text + image queries | Image is sent to a Groq vision model (Llama 4 Scout) which extracts text / describes it; the result is passed to the main model |
+| Text + image queries | Image is sent to a Groq vision model (Qwen) which extracts text / describes it; the result is passed to the main model |
 | RAG | Study notes in `data/notes/*.md` are chunked by heading and ranked with BM25 (`lib/rag.ts`). Answers cite the source note |
 | Tool calling | `searchNotes` (RAG), `searchWeb` (Tavily), `generateQuiz` (UI) - the model picks the tool; up to 4 steps per request |
 | Generative UI | `generateQuiz` returns structured data that renders as an interactive, scored quiz card |
 | Streaming chat | Vercel AI SDK `streamText` + `useChat` |
+| Education-only | System prompt restricts the bot to learning topics and politely redirects anything else |
+| Related topics | After every answer the model calls `suggestFollowUps`; the UI shows them as clickable chips |
+| Multiple chats | Right sidebar with saved chats (browser `localStorage`), new chat and delete |
+| Themes | Light / Dark / System, saved in the browser |
+| Welcome page | Landing page with app details, a Get started button and an About section |
+| Login (demo) | A name-only button, no real authentication, stored in the browser |
 
 ## Architecture
 
@@ -24,7 +30,7 @@ Browser (Next.js, useChat)
    v
 POST /api/chat
    |-- image? -> Groq vision model -> text description
-   |-- Groq Llama 3.3 70B (streamText, tools)
+   |-- Groq gpt-oss-120b (streamText, tools)
    |       |-- searchNotes  -> BM25 over data/notes
    |       |-- searchWeb    -> Tavily API
    |       '-- generateQuiz -> quiz card rendered on client
@@ -50,8 +56,8 @@ Environment variables:
 |---|---|---|
 | `GROQ_API_KEY` | yes | https://console.groq.com (free) |
 | `TAVILY_API_KEY` | for web search | https://tavily.com (free tier) |
-| `TEXT_MODEL` | no | default `llama-3.3-70b-versatile` |
-| `VISION_MODEL` | no | default `meta-llama/llama-4-scout-17b-16e-instruct` |
+| `TEXT_MODEL` | no | default `openai/gpt-oss-120b` (tool calling) |
+| `VISION_MODEL` | no | default `qwen/qwen3.8-27b` (image input) |
 
 If Groq retires a model, set `TEXT_MODEL` / `VISION_MODEL` to a current one from the Groq models page.
 
@@ -75,12 +81,21 @@ Try these in order:
 
 ```
 app/
-  api/chat/route.ts   chat endpoint: vision step, tools, streaming, rate limit
-  page.tsx            chat UI, image upload, quiz card
+  api/chat/route.ts     chat endpoint: vision step, tools, streaming, rate limit
+  page.tsx              app shell: welcome vs chat view, chats, theme, settings
+  layout.tsx, globals.css
+components/
+  Welcome.tsx           landing page
+  ChatView.tsx          messages, image upload, follow-up chips, composer
+  Sidebar.tsx           right sidebar: chat list, settings, login
+  SettingsModal.tsx     theme (Light/Dark/System), demo login, clear chats
+  QuizCard.tsx, ToolPart.tsx
 lib/
-  rag.ts              chunking + BM25 retrieval
-  tools.ts            searchNotes, searchWeb, generateQuiz
-data/notes/           study notes (add your own .md files)
+  rag.ts                chunking + BM25 retrieval
+  tools.ts              searchNotes, searchWeb, generateQuiz, suggestFollowUps
+  storage.ts, theme.ts, suggestions.ts
+data/notes/             study notes (add your own .md files)
+public/logo.svg
 ```
 
 ## Design decisions
