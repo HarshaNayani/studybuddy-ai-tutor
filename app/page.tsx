@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
@@ -119,7 +119,7 @@ export default function Home() {
   return (
     <main>
       <header>
-        <h1>StudyBuddy</h1>
+        <div className="brand"><img src="/logo.svg" alt="StudyBuddy logo" width={40} height={40} /><h1>StudyBuddy</h1></div>
         <p>Ask by text or photo. Answers come from study notes (RAG), live web search, and quizzes.</p>
       </header>
 
@@ -177,3 +177,4 @@ export default function Home() {
     </main>
   );
 }
+

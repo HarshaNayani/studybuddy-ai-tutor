@@ -1,4 +1,4 @@
-:root {
+﻿:root {
   --bg: #0f1117;
   --panel: #181b24;
   --line: #2a2f3c;
@@ -12,6 +12,8 @@
 body { margin: 0; background: var(--bg); color: var(--text); font: 15px/1.55 system-ui, -apple-system, Segoe UI, sans-serif; }
 main { max-width: 760px; margin: 0 auto; min-height: 100dvh; display: flex; flex-direction: column; padding: 0 16px; }
 header { padding: 24px 0 8px; }
+.brand { display: flex; align-items: center; gap: 12px; }
+.brand img { border-radius: 10px; }
 header h1 { margin: 0; font-size: 22px; }
 header p { margin: 4px 0 0; color: var(--dim); font-size: 13px; }
 .chat { flex: 1; display: flex; flex-direction: column; gap: 12px; padding: 12px 0 16px; }
@@ -51,3 +53,4 @@ header p { margin: 4px 0 0; color: var(--dim); font-size: 13px; }
 .preview button { background: none; border: 0; color: var(--dim); cursor: pointer; text-decoration: underline; }
 .err { color: var(--bad); font-size: 13px; }
 @media (max-width: 560px) { .suggest { grid-template-columns: 1fr; } }
+
