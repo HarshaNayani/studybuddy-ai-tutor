@@ -98,7 +98,12 @@ export async function POST(req: Request) {
   // input caps
   const recent = messages.slice(-12);
   const tooLong = recent.some((m) =>
-    m.parts.some((p) => (p.type === "text" && p.text.length > 4000) || (p.type === "file" && p.url.length > 5_000_000))
+    m.parts.some(
+      (p) =>
+        // only cap what the user typed; the assistant's own long answers in history are fine
+        (m.role === "user" && p.type === "text" && p.text.length > 4000) ||
+        (p.type === "file" && p.url.length > 3_000_000)
+    )
   );
   if (tooLong) return new Response("Message or image too large.", { status: 413 });
 

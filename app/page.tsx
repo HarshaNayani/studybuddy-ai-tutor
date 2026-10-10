@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
@@ -93,17 +93,37 @@ export default function Home() {
   const fileRef = useRef<HTMLInputElement>(null);
   const busy = status === "submitted" || status === "streaming";
 
-  function onFile(e: React.ChangeEvent<HTMLInputElement>) {
+  // Shrink the photo in the browser (max 1280px, JPEG) so requests stay small and fast
+  async function shrink(file: File) {
+    const bmp = await createImageBitmap(file);
+    const scale = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(bmp.width * scale);
+    canvas.height = Math.round(bmp.height * scale);
+    const ctx = canvas.getContext("2d")!;
+    ctx.fillStyle = "#fff";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.drawImage(bmp, 0, 0, canvas.width, canvas.height);
+    return {
+      url: canvas.toDataURL("image/jpeg", 0.8),
+      name: file.name.replace(/\.\w+$/, "") + ".jpg",
+      type: "image/jpeg",
+    };
+  }
+
+  async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const f = e.target.files?.[0];
+    e.target.value = "";
     if (!f) return;
-    if (f.size > 3_500_000) {
-      alert("Image too large (max ~3.5 MB)");
+    if (f.size > 15_000_000) {
+      alert("Image too large (max 15 MB)");
       return;
     }
-    const reader = new FileReader();
-    reader.onload = () => setImage({ url: reader.result as string, name: f.name, type: f.type });
-    reader.readAsDataURL(f);
-    e.target.value = "";
+    try {
+      setImage(await shrink(f));
+    } catch {
+      alert("Could not read this image. Please use a JPG or PNG.");
+    }
   }
 
   function submit(text: string) {
@@ -119,7 +139,10 @@ export default function Home() {
   return (
     <main>
       <header>
-        <div className="brand"><img src="/logo.svg" alt="StudyBuddy logo" width={40} height={40} /><h1>StudyBuddy</h1></div>
+        <div className="brand">
+          <img src="/logo.svg" alt="StudyBuddy logo" width={40} height={40} />
+          <h1>StudyBuddy</h1>
+        </div>
         <p>Ask by text or photo. Answers come from study notes (RAG), live web search, and quizzes.</p>
       </header>
 
@@ -177,4 +200,3 @@ export default function Home() {
     </main>
   );
 }
-
