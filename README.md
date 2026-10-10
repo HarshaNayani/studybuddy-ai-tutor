@@ -4,7 +4,7 @@ An Ed-Tech chatbot that answers student questions from **text or images**, groun
 
 Built for the igebra.ai AI Intern assignment with the Vercel AI SDK and Groq.
 
-**Live demo:** `<add your Vercel URL here>`
+**Live demo:** `https://studybuddy-ai-tutor.vercel.app/`
 
 ## Features
 
