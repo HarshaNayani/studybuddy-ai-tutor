@@ -1,6 +1,12 @@
 import type { UIMessage } from "ai";
 
-export type StoredChat = { id: string; title: string; updatedAt: number; messages: UIMessage[] };
+export type StoredChat = {
+  id: string;
+  title: string;
+  customTitle?: boolean; // true once the user renamed it, so auto-titles never overwrite it
+  updatedAt: number;
+  messages: UIMessage[];
+};
 
 const CHATS_KEY = "studybuddy:chats";
 const USER_KEY = "studybuddy:user";

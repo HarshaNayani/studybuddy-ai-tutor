@@ -6,6 +6,7 @@ import Welcome from "@/components/Welcome";
 import ChatView from "@/components/ChatView";
 import Sidebar from "@/components/Sidebar";
 import SettingsModal from "@/components/SettingsModal";
+import { IconPanel } from "@/components/icons";
 import {
   cleanForStorage,
   loadChats,
@@ -18,6 +19,9 @@ import {
 } from "@/lib/storage";
 import { applyTheme, loadTheme, type Theme } from "@/lib/theme";
 
+const COLLAPSED_KEY = "studybuddy:sidebar-collapsed";
+const isDesktop = () => typeof window !== "undefined" && window.innerWidth > 900;
+
 export default function Home() {
   const [ready, setReady] = useState(false);
   const [view, setView] = useState<"welcome" | "chat">("welcome");
@@ -25,7 +29,8 @@ export default function Home() {
   const [activeId, setActiveId] = useState<string | null>(null);
   const [theme, setTheme] = useState<Theme>("system");
   const [user, setUser] = useState<string | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(false); // mobile drawer
+  const [collapsed, setCollapsed] = useState(false); // desktop: chats panel hidden
   const [settingsOpen, setSettingsOpen] = useState(false);
 
   // load everything saved in this browser
@@ -33,6 +38,11 @@ export default function Home() {
     setChats(loadChats());
     setTheme(loadTheme());
     setUser(loadUser());
+    try {
+      setCollapsed(localStorage.getItem(COLLAPSED_KEY) === "1");
+    } catch {
+      /* ignore */
+    }
     setReady(true);
   }, []);
 
@@ -51,6 +61,18 @@ export default function Home() {
     return () => mq.removeEventListener("change", onChange);
   }, [theme, ready]);
 
+  // show / hide the chats panel: collapses on desktop, slides in as a drawer on mobile
+  function setPanelCollapsed(value: boolean) {
+    setCollapsed(value);
+    try {
+      localStorage.setItem(COLLAPSED_KEY, value ? "1" : "0");
+    } catch {
+      /* ignore */
+    }
+  }
+  const openPanel = () => (isDesktop() ? setPanelCollapsed(false) : setSidebarOpen(true));
+  const closePanel = () => (isDesktop() ? setPanelCollapsed(true) : setSidebarOpen(false));
+
   const startNew = useCallback(() => {
     const empty = chats.find((c) => c.messages.length === 0);
     if (empty) {
@@ -64,15 +86,42 @@ export default function Home() {
     setSidebarOpen(false);
   }, [chats]);
 
+  // keep the user's own order: update in place, never re-sort
   const updateChat = useCallback((id: string, messages: UIMessage[]) => {
     setChats((prev) =>
-      prev
-        .map((c) =>
-          c.id === id ? { ...c, messages: cleanForStorage(messages), title: titleFrom(messages), updatedAt: Date.now() } : c
-        )
-        .sort((a, b) => b.updatedAt - a.updatedAt)
+      prev.map((c) =>
+        c.id === id
+          ? {
+              ...c,
+              messages: cleanForStorage(messages),
+              title: c.customTitle ? c.title : titleFrom(messages),
+              updatedAt: Date.now(),
+            }
+          : c
+      )
     );
   }, []);
+
+  function renameChat(id: string, title: string) {
+    const t = title.trim().slice(0, 60);
+    if (!t) return;
+    setChats((prev) => prev.map((c) => (c.id === id ? { ...c, title: t, customTitle: true } : c)));
+  }
+
+  // swap a chat with its visible neighbour above (-1) or below (+1)
+  function moveChat(id: string, dir: -1 | 1) {
+    setChats((prev) => {
+      const vis = prev.filter((c) => c.messages.length > 0 || c.id === activeId);
+      const i = vis.findIndex((c) => c.id === id);
+      const j = i + dir;
+      if (i < 0 || j < 0 || j >= vis.length) return prev;
+      const a = prev.findIndex((c) => c.id === vis[i].id);
+      const b = prev.findIndex((c) => c.id === vis[j].id);
+      const next = [...prev];
+      [next[a], next[b]] = [next[b], next[a]];
+      return next;
+    });
+  }
 
   function deleteChat(id: string) {
     const rest = chats.filter((c) => c.id !== id);
@@ -105,20 +154,27 @@ export default function Home() {
         activeId={activeId}
         user={user}
         open={sidebarOpen}
-        onClose={() => setSidebarOpen(false)}
+        collapsed={collapsed}
+        onClose={closePanel}
         onSelect={(id) => {
           setActiveId(id);
           setSidebarOpen(false);
         }}
         onNew={startNew}
         onDelete={deleteChat}
+        onRename={renameChat}
+        onMove={moveChat}
         onOpenSettings={() => setSettingsOpen(true)}
       />
 
       <div className="main">
         <header className="topbar">
-          <button className="btn-ghost only-mobile" onClick={() => setSidebarOpen(true)}>
-            Chats
+          <button
+            className={`btn-ghost chats-toggle ${collapsed ? "collapsed" : ""}`}
+            onClick={openPanel}
+            title="Show chats"
+          >
+            <IconPanel /> Chats
           </button>
           <button className="brand-btn" onClick={() => setView("welcome")} title="Back to start page">
             <img src="/logo.svg" alt="StudyBuddy logo" width={34} height={34} />
