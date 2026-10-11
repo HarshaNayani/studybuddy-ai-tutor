@@ -52,3 +52,11 @@ export const IconPanel = () => (
     <path d="M9 4v16" />
   </svg>
 );
+
+export const IconQuiz = () => (
+  <svg {...base}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M9.6 9.2a2.5 2.5 0 1 1 3.5 2.3c-.7.4-1.1.9-1.1 1.7" />
+    <circle cx="12" cy="17" r="0.6" fill="currentColor" />
+  </svg>
+);

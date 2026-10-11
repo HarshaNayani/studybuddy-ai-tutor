@@ -286,3 +286,11 @@ a { color: var(--accent); }
   .features, .cats { grid-template-columns: 1fr; }
   .msg { max-width: 100%; }
 }
+
+/* Quiz button in the sidebar and the quiz picker */
+.quiz-btn { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.quiz-btn.active { border-color: var(--accent); background: var(--surface); }
+.qgroup { margin: 16px 0; }
+.qlabel { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; color: var(--dim); margin-bottom: 8px; }
+.chip.on { border-color: var(--accent); background: var(--surface2); font-weight: 600; }
+.qcustom { width: 100%; margin-top: 10px; }

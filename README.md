@@ -18,6 +18,7 @@ Built for the igebra.ai AI Intern assignment with the Vercel AI SDK and Groq.
 | Education-only | System prompt restricts the bot to learning topics and politely redirects anything else |
 | Related topics | After every answer the model calls `suggestFollowUps`; the UI shows them as clickable chips |
 | Multiple chats | Right sidebar with saved chats (browser `localStorage`), new chat and delete |
+| Quiz chat | A pinned **Quiz** button above Settings opens a dedicated chat: pick topic, difficulty and length, then answer an interactive quiz card with instant feedback and a score |
 | Themes | Light / Dark / System, saved in the browser |
 | Welcome page | Landing page with app details, a Get started button and an About section |
 | Login (demo) | A name-only button, no real authentication, stored in the browser |

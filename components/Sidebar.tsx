@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import type { StoredChat } from "@/lib/storage";
-import { IconDots, IconDown, IconPanel, IconPencil, IconTrash, IconUp } from "./icons";
+import { IconDots, IconDown, IconPanel, IconPencil, IconQuiz, IconTrash, IconUp } from "./icons";
 
 type Props = {
   chats: StoredChat[];
@@ -10,6 +10,8 @@ type Props = {
   user: string | null;
   open: boolean; // mobile drawer
   collapsed: boolean; // desktop hidden
+  quizActive: boolean; // the Quiz chat is the one open
+  onQuiz: () => void;
   onClose: () => void;
   onSelect: (id: string) => void;
   onNew: () => void;
@@ -25,6 +27,8 @@ export default function Sidebar({
   user,
   open,
   collapsed,
+  quizActive,
+  onQuiz,
   onClose,
   onSelect,
   onNew,
@@ -41,7 +45,7 @@ export default function Sidebar({
   const skipBlur = useRef(false); // set when Escape cancels a rename, so the blur that follows does not save it
 
   // empty chats stay hidden until the first message (except the one currently open)
-  const visible = chats.filter((c) => c.messages.length > 0 || c.id === activeId);
+  const visible = chats.filter((c) => c.kind !== "quiz" && (c.messages.length > 0 || c.id === activeId));
 
   function startEdit(c: StoredChat) {
     setMenu(null);
@@ -171,6 +175,9 @@ export default function Sidebar({
         </div>
 
         <div className="side-foot">
+          <button className={`btn-ghost full quiz-btn ${quizActive ? "active" : ""}`} onClick={onQuiz}>
+            <IconQuiz /> Quiz
+          </button>
           <button className="btn-ghost full" onClick={onOpenSettings}>
             Settings
           </button>

@@ -16,8 +16,13 @@ const toMath = (s: string) =>
     .replace(/\\\[([\s\S]*?)\\\]/g, (_, m) => `$$${m}$$`)
     .replace(/\\\(([\s\S]*?)\\\)/g, (_, m) => `$${m}$`);
 
+const QUIZ_TOPICS = ["Maths", "Physics", "Chemistry", "Biology", "Coding", "History", "Geography", "English"];
+const QUIZ_LEVELS = ["Easy", "Medium", "Hard"];
+const QUIZ_COUNTS = [3, 5];
+
 type Props = {
   chatId: string;
+  mode?: "chat" | "quiz";
   initialMessages: UIMessage[];
   onUpdate: (id: string, messages: UIMessage[]) => void;
 };
@@ -42,12 +47,17 @@ async function shrink(file: File): Promise<Attached> {
   };
 }
 
-export default function ChatView({ chatId, initialMessages, onUpdate }: Props) {
+export default function ChatView({ chatId, mode = "chat", initialMessages, onUpdate }: Props) {
   const transport = useMemo(() => new DefaultChatTransport({ api: "/api/chat" }), []);
   const { messages, sendMessage, status, error } = useChat({ id: chatId, messages: initialMessages, transport });
 
   const [input, setInput] = useState("");
   const [image, setImage] = useState<Attached | null>(null);
+  // quiz picker (Quiz chat only)
+  const [qTopic, setQTopic] = useState("Maths");
+  const [qCustom, setQCustom] = useState("");
+  const [qLevel, setQLevel] = useState("Medium");
+  const [qCount, setQCount] = useState(5);
   const fileRef = useRef<HTMLInputElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const busy = status === "submitted" || status === "streaming";
@@ -86,18 +96,98 @@ export default function ChatView({ chatId, initialMessages, onUpdate }: Props) {
     setImage(null);
   }
 
+  // In the Quiz chat a plain topic ("photosynthesis") is turned into a quiz request
+  function send(text: string) {
+    const t = text.trim();
+    if (mode === "quiz" && t && !/quiz|test|question/i.test(t)) submit(`Quiz me on ${t}`);
+    else submit(text);
+  }
+
+  function startQuiz() {
+    const topic = qCustom.trim() || qTopic;
+    submit(`Quiz me on ${topic}: ${qCount} questions, ${qLevel.toLowerCase()} difficulty.`);
+  }
+
   // related-topic chips are sent by the server (data-followups) after each finished answer
   const last = messages[messages.length - 1];
-  const followUps: string[] =
+  const serverFollowUps: string[] =
     status === "ready" && last?.role === "assistant"
       ? last.parts.flatMap((p: any) => (p.type === "data-followups" ? (p.data?.topics ?? []) : []))
       : [];
+
+  // after a quiz, the Quiz chat offers quick ways to keep practising on the same topic
+  const quizTopic: string | undefined =
+    status === "ready" && last?.role === "assistant"
+      ? (last.parts.find((p: any) => p.type === "tool-generateQuiz" && p.state === "output-available") as any)?.output?.topic
+      : undefined;
+  const followUps =
+    mode === "quiz" && quizTopic
+      ? [`Another quiz on ${quizTopic}`, `A harder quiz on ${quizTopic}`, `An easier quiz on ${quizTopic}`]
+      : serverFollowUps;
 
   return (
     <>
       <div className="scroll">
         <div className="col">
-          {messages.length === 0 && (
+          {messages.length === 0 && mode === "quiz" && (
+            <div className="start">
+              <h2>Test yourself</h2>
+              <p>Pick a topic, difficulty and length, then start. You get an interactive quiz with instant feedback.</p>
+
+              <div className="qgroup">
+                <div className="qlabel">Topic</div>
+                <div className="chips">
+                  {QUIZ_TOPICS.map((t) => (
+                    <button
+                      key={t}
+                      className={`chip ${!qCustom.trim() && qTopic === t ? "on" : ""}`}
+                      onClick={() => {
+                        setQTopic(t);
+                        setQCustom("");
+                      }}
+                    >
+                      {t}
+                    </button>
+                  ))}
+                </div>
+                <input
+                  className="text-input qcustom"
+                  value={qCustom}
+                  onChange={(e) => setQCustom(e.target.value)}
+                  placeholder="Or type your own topic, e.g. Photosynthesis"
+                  maxLength={60}
+                />
+              </div>
+
+              <div className="qgroup">
+                <div className="qlabel">Difficulty</div>
+                <div className="chips">
+                  {QUIZ_LEVELS.map((l) => (
+                    <button key={l} className={`chip ${qLevel === l ? "on" : ""}`} onClick={() => setQLevel(l)}>
+                      {l}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="qgroup">
+                <div className="qlabel">Questions</div>
+                <div className="chips">
+                  {QUIZ_COUNTS.map((n) => (
+                    <button key={n} className={`chip ${qCount === n ? "on" : ""}`} onClick={() => setQCount(n)}>
+                      {n}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <button className="btn-primary big" onClick={startQuiz} disabled={busy}>
+                Start quiz
+              </button>
+            </div>
+          )}
+
+          {messages.length === 0 && mode === "chat" && (
             <div className="start">
               <h2>What would you like to learn today?</h2>
               <p>Pick an idea below, type your own question, or attach a photo of a problem.</p>
@@ -146,7 +236,7 @@ export default function ChatView({ chatId, initialMessages, onUpdate }: Props) {
 
           {followUps.length > 0 && (
             <div className="followups">
-              <div className="followups-label">Related topics to explore</div>
+              <div className="followups-label">{mode === "quiz" && quizTopic ? "Keep practising" : "Related topics to explore"}</div>
               <div className="chips">
                 {followUps.map((t) => (
                   <button key={t} className="chip" onClick={() => submit(t)}>
@@ -164,7 +254,7 @@ export default function ChatView({ chatId, initialMessages, onUpdate }: Props) {
         className="composer"
         onSubmit={(e) => {
           e.preventDefault();
-          submit(input);
+          send(input);
         }}
       >
         <div className="col">
@@ -185,7 +275,7 @@ export default function ChatView({ chatId, initialMessages, onUpdate }: Props) {
               className="text-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a study question, or attach a photo of a problem..."
+              placeholder={mode === "quiz" ? "Type a topic to be quizzed on..." : "Ask a study question, or attach a photo of a problem..."}
             />
             <button type="submit" className="btn-primary" disabled={busy}>
               Send

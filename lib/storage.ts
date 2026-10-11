@@ -4,6 +4,7 @@ export type StoredChat = {
   id: string;
   title: string;
   customTitle?: boolean; // true once the user renamed it, so auto-titles never overwrite it
+  kind?: "quiz"; // the pinned Quiz chat; it is opened from the Quiz button, not listed with normal chats
   updatedAt: number;
   messages: UIMessage[];
 };
@@ -13,7 +14,8 @@ const USER_KEY = "studybuddy:user";
 
 export const uid = () => Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
 
-export function newChat(): StoredChat {
+export function newChat(kind?: "quiz"): StoredChat {
+  if (kind === "quiz") return { id: uid(), title: "Quiz", customTitle: true, kind, updatedAt: Date.now(), messages: [] };
   return { id: uid(), title: "New chat", updatedAt: Date.now(), messages: [] };
 }
 

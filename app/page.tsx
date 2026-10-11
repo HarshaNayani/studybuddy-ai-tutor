@@ -74,7 +74,7 @@ export default function Home() {
   const closePanel = () => (isDesktop() ? setPanelCollapsed(true) : setSidebarOpen(false));
 
   const startNew = useCallback(() => {
-    const empty = chats.find((c) => c.messages.length === 0);
+    const empty = chats.find((c) => c.kind !== "quiz" && c.messages.length === 0);
     if (empty) {
       setActiveId(empty.id);
     } else {
@@ -102,6 +102,19 @@ export default function Home() {
     );
   }, []);
 
+  function openQuiz() {
+    const existing = chats.find((c) => c.kind === "quiz");
+    if (existing) {
+      setActiveId(existing.id);
+    } else {
+      const q = newChat("quiz");
+      setChats((prev) => [...prev, q]);
+      setActiveId(q.id);
+    }
+    setView("chat");
+    setSidebarOpen(false);
+  }
+
   function renameChat(id: string, title: string) {
     const t = title.trim().slice(0, 60);
     if (!t) return;
@@ -111,7 +124,7 @@ export default function Home() {
   // swap a chat with its visible neighbour above (-1) or below (+1)
   function moveChat(id: string, dir: -1 | 1) {
     setChats((prev) => {
-      const vis = prev.filter((c) => c.messages.length > 0 || c.id === activeId);
+      const vis = prev.filter((c) => c.kind !== "quiz" && (c.messages.length > 0 || c.id === activeId));
       const i = vis.findIndex((c) => c.id === id);
       const j = i + dir;
       if (i < 0 || j < 0 || j >= vis.length) return prev;
@@ -127,10 +140,11 @@ export default function Home() {
     const rest = chats.filter((c) => c.id !== id);
     setChats(rest);
     if (id === activeId) {
-      if (rest.length > 0) setActiveId(rest[0].id);
+      const next = rest.find((c) => c.kind !== "quiz");
+      if (next) setActiveId(next.id);
       else {
         const c = newChat();
-        setChats([c]);
+        setChats([c, ...rest]);
         setActiveId(c.id);
       }
     }
@@ -155,6 +169,8 @@ export default function Home() {
         user={user}
         open={sidebarOpen}
         collapsed={collapsed}
+        quizActive={active.kind === "quiz"}
+        onQuiz={openQuiz}
         onClose={closePanel}
         onSelect={(id) => {
           setActiveId(id);
@@ -182,7 +198,13 @@ export default function Home() {
           </button>
         </header>
 
-        <ChatView key={active.id} chatId={active.id} initialMessages={active.messages} onUpdate={updateChat} />
+        <ChatView
+          key={active.id}
+          chatId={active.id}
+          mode={active.kind === "quiz" ? "quiz" : "chat"}
+          initialMessages={active.messages}
+          onUpdate={updateChat}
+        />
       </div>
 
       {settingsOpen && (
